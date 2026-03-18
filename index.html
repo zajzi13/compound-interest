@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Compound Interest Calculator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --green: #0d6e4f;
+      --green-mid: #1D9E75;
+      --green-light: #e6f5ef;
+      --green-glow: rgba(29,158,117,0.15);
+      --ink: #0f1a14;
+      --ink-soft: #3a4a40;
+      --ink-muted: #7a9080;
+      --paper: #f5f2eb;
+      --paper-warm: #ede9df;
+      --paper-card: #faf8f3;
+      --border: rgba(13,110,79,0.15);
+      --serif: 'DM Serif Display', serif;
+      --sans: 'DM Sans', sans-serif;
+      --mono: 'DM Mono', monospace;
+    }
+
+    html { font-size: 16px; }
+
+    body {
+      font-family: var(--sans);
+      background: var(--paper);
+      color: var(--ink);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Decorative background grid */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(var(--border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--border) 1px, transparent 1px);
+      background-size: 60px 60px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .page {
+      position: relative;
+      z-index: 1;
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 3rem 2rem 5rem;
+    }
+
+    /* ── Header ── */
+    header {
+      margin-bottom: 3.5rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 2rem;
+    }
+
+    .eyebrow {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--green-mid);
+      margin-bottom: 0.75rem;
+    }
+
+    h1 {
+      font-family: var(--serif);
+      font-size: clamp(2.2rem, 5vw, 3.4rem);
+      line-height: 1.1;
+      color: var(--ink);
+      font-weight: 400;
+    }
+
+    h1 em {
+      color: var(--green);
+      font-style: italic;
+    }
+
+    .subtitle {
+      margin-top: 0.75rem;
+      font-size: 15px;
+      color: var(--ink-soft);
+      max-width: 480px;
+      line-height: 1.6;
+      font-weight: 300;
+    }
+
+    /* ── Main layout ── */
+    .layout {
+      display: grid;
+      grid-template-columns: 300px 1fr;
+      gap: 2rem;
+      align-items: start;
+    }
+
+    @media (max-width: 680px) {
+      .layout { grid-template-columns: 1fr; }
+    }
+
+    /* ── Controls panel ── */
+    .panel {
+      background: var(--paper-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      position: sticky;
+      top: 2rem;
+    }
+
+    .panel-title {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--ink-muted);
+      margin-bottom: 1.25rem;
+    }
+
+    .control {
+      margin-bottom: 1.4rem;
+    }
+
+    .control-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 6px;
+    }
+
+    .control-name {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--ink-soft);
+    }
+
+    .control-value {
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--green);
+    }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 4px;
+      background: var(--paper-warm);
+      border-radius: 2px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--green);
+      border: 3px solid var(--paper-card);
+      box-shadow: 0 0 0 1px var(--green);
+      cursor: pointer;
+      transition: transform 0.1s;
+    }
+
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+    }
+
+    input[type="range"]::-moz-range-thumb {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--green);
+      border: 3px solid var(--paper-card);
+      cursor: pointer;
+    }
+
+    /* ── Results panel ── */
+    .results { display: flex; flex-direction: column; gap: 1.25rem; }
+
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    .stat-card {
+      background: var(--paper-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1rem 1rem 0.9rem;
+    }
+
+    .stat-card.featured {
+      background: var(--green);
+      border-color: var(--green);
+    }
+
+    .stat-label {
+      font-size: 11px;
+      font-family: var(--mono);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--ink-muted);
+      margin-bottom: 4px;
+    }
+
+    .stat-card.featured .stat-label {
+      color: rgba(255,255,255,0.65);
+    }
+
+    .stat-number {
+      font-family: var(--serif);
+      font-size: 1.55rem;
+      color: var(--ink);
+      line-height: 1;
+    }
+
+    .stat-card.featured .stat-number { color: #fff; }
+
+    .stat-subtext {
+      font-size: 11px;
+      color: var(--ink-muted);
+      margin-top: 3px;
+    }
+
+    .stat-card.featured .stat-subtext { color: rgba(255,255,255,0.55); }
+
+    /* ── Chart container ── */
+    .chart-wrap {
+      background: var(--paper-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+    }
+
+    .chart-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .chart-title {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--ink-soft);
+    }
+
+    .legend {
+      display: flex;
+      gap: 14px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      font-family: var(--mono);
+      color: var(--ink-muted);
+    }
+
+    .legend-swatch {
+      width: 10px;
+      height: 10px;
+      border-radius: 2px;
+    }
+
+    .chart-canvas-wrap {
+      position: relative;
+      width: 100%;
+      height: 240px;
+    }
+
+    /* ── Insight bar ── */
+    .insight {
+      background: var(--green-light);
+      border: 1px solid rgba(13,110,79,0.2);
+      border-left: 3px solid var(--green-mid);
+      border-radius: 8px;
+      padding: 0.85rem 1rem;
+      font-size: 13.5px;
+      color: var(--green);
+      line-height: 1.5;
+    }
+
+    .insight strong {
+      font-weight: 500;
+    }
+
+    /* ── Year table ── */
+    .table-wrap {
+      background: var(--paper-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .table-title {
+      padding: 1rem 1.25rem 0.75rem;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--ink-soft);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .table-scroll {
+      overflow-x: auto;
+      max-height: 260px;
+      overflow-y: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12.5px;
+    }
+
+    thead th {
+      background: var(--paper-warm);
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--ink-muted);
+      padding: 8px 14px;
+      text-align: right;
+      position: sticky;
+      top: 0;
+    }
+
+    thead th:first-child { text-align: left; }
+
+    tbody td {
+      padding: 7px 14px;
+      text-align: right;
+      color: var(--ink-soft);
+      border-bottom: 1px solid var(--border);
+      font-family: var(--mono);
+      font-size: 12px;
+    }
+
+    tbody td:first-child {
+      text-align: left;
+      font-family: var(--sans);
+      color: var(--ink-muted);
+    }
+
+    tbody tr:hover td { background: var(--paper-warm); }
+
+    .gain-cell { color: var(--green-mid); font-weight: 500; }
+
+    /* ── Footer ── */
+    footer {
+      margin-top: 4rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--border);
+      font-size: 12px;
+      color: var(--ink-muted);
+      text-align: center;
+    }
+
+    /* ── Animations ── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .page > * { animation: fadeUp 0.5s ease both; }
+    header { animation-delay: 0s; }
+    .layout { animation-delay: 0.1s; }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <header>
+    <p class="eyebrow">Financial Tool</p>
+    <h1>The power of<br><em>compound interest</em></h1>
+    <p class="subtitle">Adjust the sliders to see how time, rate, and regular contributions shape your wealth over the long run.</p>
+  </header>
+
+  <div class="layout">
+
+    <!-- Controls -->
+    <aside class="panel">
+      <p class="panel-title">Parameters</p>
+
+      <div class="control">
+        <div class="control-header">
+          <span class="control-name">Initial deposit</span>
+          <span class="control-value" id="v-principal">$5,000</span>
+        </div>
+        <input type="range" id="principal" min="100" max="100000" value="5000" step="100">
+      </div>
+
+      <div class="control">
+        <div class="control-header">
+          <span class="control-name">Annual interest rate</span>
+          <span class="control-value" id="v-rate">7.0%</span>
+        </div>
+        <input type="range" id="rate" min="0.5" max="20" value="7" step="0.5">
+      </div>
+
+      <div class="control">
+        <div class="control-header">
+          <span class="control-name">Time horizon</span>
+          <span class="control-value" id="v-years">20 years</span>
+        </div>
+        <input type="range" id="years" min="1" max="50" value="20" step="1">
+      </div>
+
+      <div class="control">
+        <div class="control-header">
+          <span class="control-name">Monthly contribution</span>
+          <span class="control-value" id="v-monthly">$0</span>
+        </div>
+        <input type="range" id="monthly" min="0" max="5000" value="0" step="50">
+      </div>
+
+      <div class="control">
+        <div class="control-header">
+          <span class="control-name">Compounding</span>
+          <span class="control-value" id="v-freq">Monthly</span>
+        </div>
+        <input type="range" id="freq" min="1" max="4" value="2" step="1">
+      </div>
+    </aside>
+
+    <!-- Results -->
+    <div class="results">
+
+      <div class="stats-row">
+        <div class="stat-card featured">
+          <div class="stat-label">Final balance</div>
+          <div class="stat-number" id="s-final">—</div>
+          <div class="stat-subtext" id="s-final-sub">after 20 years</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Total contributed</div>
+          <div class="stat-number" id="s-contrib">—</div>
+          <div class="stat-subtext">principal + deposits</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Interest earned</div>
+          <div class="stat-number" id="s-interest">—</div>
+          <div class="stat-subtext" id="s-interest-pct">—% of final</div>
+        </div>
+      </div>
+
+      <div class="chart-wrap">
+        <div class="chart-header">
+          <span class="chart-title">Growth over time</span>
+          <div class="legend">
+            <div class="legend-item"><div class="legend-swatch" style="background:#1D9E75;"></div>Balance</div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#B4B2A9;"></div>Contributed</div>
+          </div>
+        </div>
+        <div class="chart-canvas-wrap">
+          <canvas id="chart"></canvas>
+        </div>
+      </div>
+
+      <div class="insight" id="insight-text">—</div>
+
+      <div class="table-wrap">
+        <div class="table-title">Year-by-year breakdown</div>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Year</th>
+                <th>Balance</th>
+                <th>Contributed</th>
+                <th>Interest earned</th>
+                <th>Gain vs prev yr</th>
+              </tr>
+            </thead>
+            <tbody id="table-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <footer>
+    This calculator assumes interest compounds at the selected frequency. Results are estimates for educational purposes only — not financial advice.
+  </footer>
+
+</div>
+
+<script>
+  const FREQ_LABELS = ['', 'Annually', 'Monthly', 'Quarterly', 'Daily'];
+  const FREQ_VALUES = [0, 1, 12, 4, 365];
+
+  const $ = id => document.getElementById(id);
+
+  function fmt(n) {
+    return '$' + Math.round(n).toLocaleString('en-US');
+  }
+
+  function calcData(principal, annualRate, years, monthly, freqIdx) {
+    const n = FREQ_VALUES[freqIdx];
+    const r = annualRate / 100 / n;
+    const data = [];
+
+    for (let y = 0; y <= years; y++) {
+      const t = y * n;
+      const balance = principal * Math.pow(1 + r, t) + (r > 0 ? monthly * (Math.pow(1 + r, t) - 1) / r * (n / 12) : monthly * y * 12);
+      const contrib = principal + monthly * y * 12;
+      data.push({ year: y, balance: Math.round(balance), contrib: Math.round(contrib) });
+    }
+    return data;
+  }
+
+  // Chart setup
+  const ctx = $('chart').getContext('2d');
+  const chart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: [],
+      datasets: [
+        {
+          label: 'Balance',
+          data: [],
+          borderColor: '#1D9E75',
+          backgroundColor: 'rgba(29,158,117,0.10)',
+          fill: true,
+          tension: 0.4,
+          pointRadius: 0,
+          borderWidth: 2.5,
+        },
+        {
+          label: 'Contributed',
+          data: [],
+          borderColor: '#B4B2A9',
+          backgroundColor: 'transparent',
+          fill: false,
+          tension: 0,
+          pointRadius: 0,
+          borderWidth: 1.5,
+          borderDash: [5, 4],
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#0f1a14',
+          titleColor: 'rgba(255,255,255,0.5)',
+          bodyColor: '#fff',
+          padding: 10,
+          callbacks: {
+            label: ctx => ' ' + ctx.dataset.label + ': ' + fmt(ctx.parsed.y)
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { color: 'rgba(0,0,0,0.05)' },
+          ticks: { color: '#7a9080', font: { size: 11, family: "'DM Mono', monospace" }, maxTicksLimit: 10 }
+        },
+        y: {
+          grid: { color: 'rgba(0,0,0,0.05)' },
+          ticks: {
+            color: '#7a9080',
+            font: { size: 11, family: "'DM Mono', monospace" },
+            callback: v => v >= 1000000 ? '$' + (v/1000000).toFixed(1) + 'M' : v >= 1000 ? '$' + Math.round(v/1000) + 'k' : '$' + v
+          }
+        }
+      }
+    }
+  });
+
+  function update() {
+    const principal = +$('principal').value;
+    const rate = +$('rate').value;
+    const years = +$('years').value;
+    const monthly = +$('monthly').value;
+    const freqIdx = +$('freq').value;
+
+    // Update labels
+    $('v-principal').textContent = fmt(principal);
+    $('v-rate').textContent = rate.toFixed(1) + '%';
+    $('v-years').textContent = years + ' year' + (years !== 1 ? 's' : '');
+    $('v-monthly').textContent = fmt(monthly);
+    $('v-freq').textContent = FREQ_LABELS[freqIdx];
+
+    const data = calcData(principal, rate, years, monthly, freqIdx);
+    const last = data[data.length - 1];
+    const interest = last.balance - last.contrib;
+    const interestPct = Math.round((interest / last.balance) * 100);
+    const multiplier = (last.balance / last.contrib).toFixed(1);
+
+    // Stats
+    $('s-final').textContent = fmt(last.balance);
+    $('s-final-sub').textContent = 'after ' + years + ' yr' + (years !== 1 ? 's' : '');
+    $('s-contrib').textContent = fmt(last.contrib);
+    $('s-interest').textContent = fmt(interest);
+    $('s-interest-pct').textContent = interestPct + '% of final balance';
+
+    // Insight
+    $('insight-text').innerHTML = `Your money <strong>grows ${multiplier}×</strong> over ${years} years — every $1 you put in becomes $${multiplier}. The interest alone (${fmt(interest)}) represents ${interestPct}% of your final balance.`;
+
+    // Chart
+    chart.data.labels = data.map(d => d.year === 0 ? 'Now' : 'Yr ' + d.year);
+    chart.data.datasets[0].data = data.map(d => d.balance);
+    chart.data.datasets[1].data = data.map(d => d.contrib);
+    chart.update('none');
+
+    // Table
+    const tbody = $('table-body');
+    tbody.innerHTML = '';
+    data.forEach((d, i) => {
+      if (i === 0) return;
+      const prev = data[i - 1];
+      const gain = d.balance - prev.balance;
+      const earned = d.balance - d.contrib;
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>Year ${d.year}</td>
+        <td>${fmt(d.balance)}</td>
+        <td>${fmt(d.contrib)}</td>
+        <td>${fmt(earned)}</td>
+        <td class="gain-cell">+${fmt(gain)}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  ['principal','rate','years','monthly','freq'].forEach(id => {
+    $(id).addEventListener('input', update);
+  });
+
+  update();
+</script>
+</body>
+</html>
